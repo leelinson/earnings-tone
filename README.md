@@ -77,10 +77,10 @@ The site is hosted free on GitHub Pages by `.github/workflows/pages.yml`. Since 
 
 ```bash
 cd web && tar czf site-data.tar.gz data
-# create a GitHub release and attach site-data.tar.gz; publishing it deploys the site
+# create a GitHub release, attach site-data.tar.gz, then Run workflow on the Actions tab
 ```
 
-Repo settings need Pages set to deploy from GitHub Actions. Run workflow on the Actions tab redeploys the latest release.
+Repo settings need Pages set to deploy from GitHub Actions. Every push to main also redeploys, using the latest release's data.
 
 The real-data run itself is described in [pipeline/README.md](pipeline/README.md) and the docstrings in `pipeline/scripts/`.
 
