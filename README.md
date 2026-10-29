@@ -24,7 +24,7 @@ Bottom line: the EPS surprise dominates. Hedging and evasiveness add no reliable
 | `pipeline/` | `earnings_tone` Python package (parse transcripts, score tone, event study), scripts for the real-data run, tests | Done |
 | `db/` | SQLite schema for the web app | Done |
 | `api/` | Read-only FastAPI service over the SQLite file built by `pipeline/scripts/build_db.py` | Done (runs locally) |
-| `web/` | Static Next.js site: explore a company, results, robustness, glossary | Planned |
+| `web/` | Static Next.js site: explore a company, call pages, project walkthrough | Explore a company done; results pages planned |
 
 ## Running the pipeline
 
@@ -35,7 +35,7 @@ python -m pytest -q                         # 12 tests
 python -m earnings_tone.cli demo            # synthetic end-to-end run, no downloads
 ```
 
-To build the app's database from the real-data outputs, see the usage line in `pipeline/scripts/build_db.py`; then run the API as described in [api/README.md](api/README.md).
+To build the app's database from the real-data outputs, see the usage line in `pipeline/scripts/build_db.py`; then run the API as described in [api/README.md](api/README.md) and build the site as described in [web/README.md](web/README.md).
 
 The real-data run and its scripts are described in [pipeline/README.md](pipeline/README.md) and the docstrings in `pipeline/scripts/`.
 
