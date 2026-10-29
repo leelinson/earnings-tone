@@ -16,6 +16,9 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
             <Link href="/" className="brand">Earnings Call Tone</Link>
             <Link href="/">Explore a company</Link>
             <Link href="/walkthrough/">Project walkthrough</Link>
+            <Link href="/results/">Main results</Link>
+            <Link href="/robustness/">Does it hold up?</Link>
+            <Link href="/data/">Data and glossary</Link>
           </div>
         </header>
         <main className="wrap">{children}</main>

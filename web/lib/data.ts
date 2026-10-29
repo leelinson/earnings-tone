@@ -35,9 +35,23 @@ export type Regression = {
   coef_bps: number; t_stat: number; is_test: boolean;
 };
 export type Study = {
-  summary: [{ calls: number; firms: number; first_call: string; last_call: string; sue_coef_bps: number; sue_t: number }];
+  summary: [{
+    calls: number; firms: number; quarters: number; first_call: string; last_call: string; oos_split: string;
+    sue_coef_bps: number; sue_t: number; real_composite_bps: number; real_composite_t: number;
+    placebo_mean_t: number; placebo_share_sig: number; median_qa_pairs: number; mean_abs_car_0_1_bps: number;
+  }];
   project_steps: Step[];
-  regressions: Regression[];
+  regressions: (Regression & { se_bps: number; p_value: number; n: number; r2: number })[];
+  robustness: { check: string; coef_bps: number; se_bps: number; t_stat: number; n: number; note: string }[];
+  placebo: { shuffle: number; coef_bps: number; t_stat: number }[];
+  sample_flow: { step: number; stage: string; calls: number }[];
+  long_short: { period: string; mean_spread_bps: number; t_stat: number; n_quarters: number; hit_rate: number; first_quarter: string; last_quarter: string }[];
+  quintiles: { period: string; quintile: string; mean_car_bps: number }[];
+  car_path: { quintile: string; day: number; car_bps: number; n_calls: number }[];
+  spread_by_quarter: { quarter: string; spread_bps: number; sample: string }[];
+  sue_bins: { decile: number; mean_car_bps: number; n_calls: number }[];
+  evasion_bins: { decile: number; mean_car_bps: number; n_calls: number }[];
+  tone_by_quarter: { quarter: string; qa_hedging: number; qa_net_tone: number; prep_net_tone: number; tone_gap: number; n_calls: number }[];
 };
 
 export const companies = () => read<Company[]>("companies.json");

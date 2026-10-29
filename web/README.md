@@ -1,6 +1,6 @@
 # Web
 
-Static Next.js site: Explore a company (home, company and call pages) and the project walkthrough. It reads JSON exported from the API at build time, so the built site needs no server and can be hosted for free.
+Static Next.js site: Explore a company (home, company and call pages), the project walkthrough, Main results, Does it hold up? and Data and glossary. It reads JSON exported from the API at build time, so the built site needs no server and can be hosted for free.
 
 ```bash
 # 1. build the database (see pipeline/scripts/build_db.py), then export it for the site
