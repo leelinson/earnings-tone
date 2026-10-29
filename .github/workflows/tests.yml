@@ -22,6 +22,8 @@ jobs:
       - run: python -m pytest -q
       - name: Synthetic demo runs end to end
         run: python -m earnings_tone.cli demo --out /tmp/demo
+      - name: Per-ticker report runs on the demo data
+        run: python -m earnings_tone.cli ticker --ticker T001 --transcripts /tmp/demo/transcripts.jsonl --out /tmp/demo/T001
 
   api:
     runs-on: ubuntu-latest

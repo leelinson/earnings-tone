@@ -44,7 +44,7 @@ Bottom line: the EPS surprise dominates. Hedging and evasiveness add no reliable
 
 | Folder | What it holds |
 | --- | --- |
-| `pipeline/` | `earnings_tone` Python package (parse transcripts, score tone, event study), scripts for the real-data run, 12 tests |
+| `pipeline/` | `earnings_tone` Python package (parse transcripts, score tone, event study), per-ticker NLP report (`ticker` command), scripts for the real-data run, 16 tests |
 | `db/` | SQLite schema (8 tables) |
 | `api/` | Read-only FastAPI service with 10 endpoints, 8 tests, and `export_static.py` for the site |
 | `web/` | Static Next.js site, about 1,900 pages |
