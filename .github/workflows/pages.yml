@@ -2,10 +2,12 @@ name: Deploy site
 
 # The site's data is never committed. It comes from a release asset: the output of
 # api/export_static.py packed as `tar czf site-data.tar.gz data` from web/.
-# Publishing a release with that asset deploys it; Run workflow redeploys the latest one.
+# Every push to main deploys with the latest release's data; after uploading new data,
+# Run workflow redeploys. Runs from main because the github-pages environment only
+# accepts deploys from the default branch, not from release tags.
 on:
-  release:
-    types: [published]
+  push:
+    branches: [main]
   workflow_dispatch:
     inputs:
       tag:
@@ -37,7 +39,7 @@ jobs:
       - name: Download site data
         env:
           GH_TOKEN: ${{ github.token }}
-          TAG: ${{ github.event.release.tag_name || inputs.tag }}
+          TAG: ${{ inputs.tag }}
         run: |
           gh release download $TAG --repo "$GITHUB_REPOSITORY" --pattern site-data.tar.gz
           tar xzf site-data.tar.gz
