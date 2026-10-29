@@ -3,7 +3,7 @@
 **/data/raw/
 **/data/processed/
 **/data/reference/
-results/
+/results/
 *.parquet
 *.jsonl
 *.sqlite

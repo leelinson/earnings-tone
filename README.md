@@ -24,7 +24,7 @@ Bottom line: the EPS surprise dominates. Hedging and evasiveness add no reliable
 | `pipeline/` | `earnings_tone` Python package (parse transcripts, score tone, event study), scripts for the real-data run, tests | Done |
 | `db/` | SQLite schema for the web app | Done |
 | `api/` | Read-only FastAPI service over the SQLite file built by `pipeline/scripts/build_db.py` | Done (runs locally) |
-| `web/` | Static Next.js site: explore a company, call pages, project walkthrough | Explore a company done; results pages planned |
+| `web/` | Static Next.js site: explore a company, call pages, walkthrough, main results, robustness, data and glossary | Done |
 
 ## Running the pipeline
 
