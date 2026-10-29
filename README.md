@@ -4,6 +4,8 @@ Does *how* management talks in the Q&A of an earnings call (hedging, uncertainty
 
 This repo holds the research pipeline and a web app built on top of it: a FastAPI service over a SQLite database, and a static Next.js site with a page for every company and every call.
 
+**Live site: [leelinson.github.io/earnings-tone](https://leelinson.github.io/earnings-tone/)**
+
 ![Explore a company](docs/screenshots/home.png)
 
 ## Findings
@@ -68,6 +70,17 @@ EARNINGS_TONE_DB=../data/earnings_tone.sqlite uvicorn app.main:app --reload
 EARNINGS_TONE_DB=../data/earnings_tone.sqlite python export_static.py ../web/data
 cd ../web && npm install && npm run dev
 ```
+
+### Deploying the site
+
+The site is hosted free on GitHub Pages by `.github/workflows/pages.yml`. Since data is never committed, the workflow takes the exported JSON from a release asset:
+
+```bash
+cd web && tar czf site-data.tar.gz data
+# create a GitHub release and attach site-data.tar.gz; publishing it deploys the site
+```
+
+Repo settings need Pages set to deploy from GitHub Actions. Run workflow on the Actions tab redeploys the latest release.
 
 The real-data run itself is described in [pipeline/README.md](pipeline/README.md) and the docstrings in `pipeline/scripts/`.
 
