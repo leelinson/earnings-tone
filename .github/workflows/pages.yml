@@ -1,0 +1,62 @@
+name: Deploy site
+
+# The site's data is never committed. It comes from a release asset: the output of
+# api/export_static.py packed as `tar czf site-data.tar.gz data` from web/.
+# Publishing a release with that asset deploys it; Run workflow redeploys the latest one.
+on:
+  release:
+    types: [published]
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: Release tag holding site-data.tar.gz (blank for the latest release)
+        required: false
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: pages
+  cancel-in-progress: true
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: web
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: npm
+          cache-dependency-path: web/package-lock.json
+      - name: Download site data
+        env:
+          GH_TOKEN: ${{ github.token }}
+          TAG: ${{ github.event.release.tag_name || inputs.tag }}
+        run: |
+          gh release download $TAG --repo "$GITHUB_REPOSITORY" --pattern site-data.tar.gz
+          tar xzf site-data.tar.gz
+          ls data/call | wc -l
+      - run: npm ci
+      - run: npm run build
+        env:
+          NEXT_BASE_PATH: /${{ github.event.repository.name }}
+      - run: touch out/.nojekyll
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: web/out
+
+  deploy:
+    needs: build
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - id: deployment
+        uses: actions/deploy-pages@v4
