@@ -1,0 +1,84 @@
+:root {
+  --bg: #fbfaf7;
+  --panel: #ffffff;
+  --text: #1d1d1b;
+  --muted: #66645e;
+  --line: #e4e1d8;
+  --accent: #2f5fd0;
+  --accent-soft: #e8eefb;
+  --up: #1d7f4e;
+  --down: #c0392b;
+  --market: #9a968c;
+  --hedge: #c77c12;
+}
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg: #161614;
+    --panel: #1f1f1c;
+    --text: #ecebe6;
+    --muted: #a3a097;
+    --line: #34332e;
+    --accent: #7ea2f2;
+    --accent-soft: #23304d;
+    --up: #5cc68f;
+    --down: #ef7a6c;
+    --market: #7d7a72;
+    --hedge: #e3a14a;
+  }
+}
+* { box-sizing: border-box; }
+body {
+  margin: 0; background: var(--bg); color: var(--text);
+  font: 15px/1.55 -apple-system, BlinkMacSystemFont, "Segoe UI", Inter, Roboto, sans-serif;
+}
+a { color: var(--accent); text-decoration: none; }
+a:hover { text-decoration: underline; }
+.wrap { max-width: 1040px; margin: 0 auto; padding: 0 16px; }
+header.site { border-bottom: 1px solid var(--line); background: var(--panel); }
+header.site .wrap { display: flex; gap: 6px 20px; align-items: center; min-height: 56px; padding-top: 10px; padding-bottom: 10px; flex-wrap: wrap; }
+header.site .brand { font-weight: 650; color: var(--text); margin-right: auto; }
+main { padding: 28px 0 56px; }
+footer.site { border-top: 1px solid var(--line); color: var(--muted); font-size: 13px; padding: 20px 0 40px; }
+h1 { font-size: 28px; line-height: 1.2; margin: 0 0 8px; }
+h2 { font-size: 19px; margin: 36px 0 6px; }
+.lead { font-size: 17px; color: var(--muted); max-width: 720px; margin: 0 0 24px; }
+.takeaway { color: var(--muted); margin: 0 0 12px; }
+.takeaway b { color: var(--text); }
+.panel { background: var(--panel); border: 1px solid var(--line); border-radius: 10px; padding: 16px; }
+.tiles { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 12px; margin: 20px 0; }
+.tile { background: var(--panel); border: 1px solid var(--line); border-radius: 10px; padding: 12px 14px; }
+.tile .k { font-size: 12.5px; color: var(--muted); }
+.tile .v { font-size: 22px; font-weight: 650; margin-top: 2px; }
+.tile .s { font-size: 12.5px; color: var(--muted); }
+.up { color: var(--up); }
+.down { color: var(--down); }
+.muted { color: var(--muted); }
+.grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 10px; }
+.card { display: block; background: var(--panel); border: 1px solid var(--line); border-radius: 10px; padding: 12px 14px; color: var(--text); }
+.card:hover { border-color: var(--accent); text-decoration: none; }
+.card .t { font-weight: 650; }
+.card .n { color: var(--muted); font-size: 13px; }
+input.search {
+  width: 100%; max-width: 420px; padding: 10px 12px; font: inherit; border-radius: 8px;
+  border: 1px solid var(--line); background: var(--panel); color: var(--text); margin-bottom: 14px;
+}
+.table-scroll { overflow-x: auto; }
+table { width: 100%; border-collapse: collapse; font-size: 14px; font-variant-numeric: tabular-nums; }
+th, td { text-align: right; padding: 8px 10px; border-bottom: 1px solid var(--line); white-space: nowrap; }
+th:first-child, td:first-child, th.l, td.l { text-align: left; }
+th { font-size: 12.5px; color: var(--muted); font-weight: 600; }
+tr:hover td { background: var(--accent-soft); }
+.badge { display: inline-block; padding: 1px 8px; border-radius: 99px; font-size: 12.5px; border: 1px solid var(--line); }
+.qa { border-top: 1px solid var(--line); padding: 14px 0; }
+.qa .q { color: var(--muted); margin: 0 0 6px; }
+.qa .a { margin: 0; }
+.qa .meta { font-size: 12.5px; color: var(--muted); margin-top: 6px; display: flex; gap: 14px; flex-wrap: wrap; align-items: center; }
+.bar { display: inline-block; height: 6px; border-radius: 3px; background: var(--hedge); vertical-align: middle; }
+.highlight { border-left: 3px solid var(--hedge); padding-left: 14px; }
+.steps { list-style: none; padding: 0; margin: 0; counter-reset: s; }
+.steps li { display: grid; grid-template-columns: 36px 1fr; gap: 12px; padding: 14px 0; border-top: 1px solid var(--line); }
+.steps .num { font-weight: 650; color: var(--accent); }
+.steps .fig { font-weight: 650; }
+.crumbs { font-size: 13.5px; color: var(--muted); margin-bottom: 10px; }
+.pager { display: flex; justify-content: space-between; margin-top: 28px; gap: 12px; }
+.note { font-size: 13px; color: var(--muted); }
