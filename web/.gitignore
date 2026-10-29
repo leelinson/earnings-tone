@@ -1,4 +1,4 @@
 # Built by api/export_static.py from the local database; not committed
-data/
+/data/
 next-env.d.ts
 *.tsbuildinfo
