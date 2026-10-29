@@ -114,6 +114,22 @@ python -m earnings_tone.cli features --transcripts data/transcripts.jsonl --out 
 python -m earnings_tone.cli prices   --features data/features.parquet --out data/car.parquet
 python -m earnings_tone.cli study    --features data/features.parquet --car data/car.parquet \
                                      --surprise data/eps_surprise.csv --out reports/
+
+# 3) One company's calls in depth (any ticker in the transcripts file)
+python -m earnings_tone.cli ticker --ticker AAPL --transcripts data/transcripts.jsonl \
+    --lm-dict data/lm_dictionary.csv --panel data/panel.parquet --out reports/AAPL
 ```
 
 Tests: `pytest -q`
+
+### Per-ticker NLP analysis (`ticker_report.py`)
+
+`ticker` scores every call for one company with the same parser and features as the study and writes `report.md`, two charts, `calls.csv`, `answers.csv` (one row per Q&A exchange) and `analysis.json`. The report covers:
+
+- **Focus call** (latest, or `--call YYYY-MM-DD`): each tone measure vs the firm's average, as a z-score against the firm's earlier calls, and as a percentile among all firms' calls that quarter.
+- **Notable excerpts**: the most hedged, least on-topic and most negative answers, and any non-answer phrases, with who asked and who answered.
+- **Every call**: prepared vs Q&A net tone, hedging, answer relevance, non-answers, and (with `--panel`) the EPS surprise and CAR[0,+1] / CAR[+2,+20].
+- **Themes and keywords**: a theme heatmap (AI, cloud, China, supply chain, pricing, margins, capital return, regulation, macro, guidance, Covid), distinctive TF-IDF terms per call, terms rising or fading over the last `--recent` calls (default 4), and what analysts asked about.
+- **Tone and the stock's reaction**: within-firm Spearman correlations of tone with CARs. With about 30 calls per firm, treat these as descriptive.
+
+`--lm-dict` and `--panel` are optional: without the dictionary it uses the seed word lists, without the panel it skips returns and peer percentiles.

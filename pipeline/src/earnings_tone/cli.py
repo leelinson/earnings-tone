@@ -6,7 +6,7 @@ from pathlib import Path
 
 import pandas as pd
 
-from . import data, features, prices, study, surprise, synthetic
+from . import data, features, prices, study, surprise, synthetic, ticker_report
 
 
 def cmd_demo(a):
@@ -53,6 +53,18 @@ def cmd_study(a):
     print(f"Report: {Path(a.out) / 'results.md'}")
 
 
+def cmd_ticker(a):
+    ts = ticker_report.load_ticker_transcripts(a.transcripts, a.ticker)
+    if not ts:
+        raise SystemExit(f"No parseable calls for {a.ticker.upper()} in {a.transcripts}")
+    lex = features.load_lm_dictionary(a.lm_dict) if a.lm_dict else None
+    panel = pd.read_parquet(a.panel) if a.panel else None
+    res = ticker_report.analyze_ticker(ts, lex, panel, recent=a.recent)
+    out = Path(a.out or f"reports/{res['ticker']}")
+    path = ticker_report.save_outputs(res, out, a.call)
+    print(f"{res['ticker']}: {len(ts)} calls, {len(res['answers'])} Q&A exchanges. Report: {path}")
+
+
 def main(argv=None):
     p = argparse.ArgumentParser(prog="earnings_tone")
     sub = p.add_subparsers(required=True)
@@ -66,6 +78,11 @@ def main(argv=None):
     s = sub.add_parser("study"); s.add_argument("--features", required=True); s.add_argument("--car", required=True)
     s.add_argument("--surprise"); s.add_argument("--out", default="reports"); s.add_argument("--split", default="2023Q1")
     s.set_defaults(f=cmd_study)
+    s = sub.add_parser("ticker", help="NLP analysis of every call for one ticker")
+    s.add_argument("--ticker", required=True); s.add_argument("--transcripts", required=True)
+    s.add_argument("--lm-dict"); s.add_argument("--panel", help="study panel parquet, adds returns and peer ranks")
+    s.add_argument("--call", help="focus call date (default: latest)"); s.add_argument("--recent", type=int, default=4)
+    s.add_argument("--out", help="output folder (default: reports/<TICKER>)"); s.set_defaults(f=cmd_ticker)
     a = p.parse_args(argv)
     a.f(a)
 
