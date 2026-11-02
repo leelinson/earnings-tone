@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import WindowChart from "@/components/WindowChart";
+import { BeatPill, PageHead, Section, Stat } from "@/components/ui";
 import { call, companies, company } from "@/lib/data";
 import { longDate, pct, pctile, signClass } from "@/lib/format";
 
@@ -34,73 +35,81 @@ export default async function CallPage({ params }: Props) {
   const maxHedge = Math.max(1, ...qa.map((p) => p.hedging_per1k));
   return (
     <>
-      <div className="crumbs">
-        <Link href="/">All companies</Link> / <Link href={`/company/${ticker}/`}>{ticker}</Link> / {longDate(c.call_date)}
-      </div>
-      <h1>{co.name}: earnings call of {longDate(c.call_date)}</h1>
-      <p className="lead">{verdict(c.car_0_1, c.beat, c.hedging_pct)}</p>
+      <PageHead
+        crumbs={[{ href: "/", label: "All companies" }, { href: `/company/${ticker}/`, label: ticker }, { label: longDate(c.call_date) }]}
+        eyebrow={`${co.name} · earnings call`}
+        title={longDate(c.call_date)}
+      >
+        <p className="verdict">{verdict(c.car_0_1, c.beat, c.hedging_pct)}</p>
+      </PageHead>
 
       <div className="tiles">
-        <div className="tile"><div className="k">Earnings vs expectations</div><div className="v">{c.beat ?? "–"}</div>
-          <div className="s">{c.sources_disagree ? "data sources disagree" : c.surprise_pct == null ? "" : `surprise ranked ${pctile(c.surprise_pct)} that quarter`}</div></div>
-        <div className="tile"><div className="k">2-day reaction</div><div className={`v ${signClass(c.car_0_1)}`}>{pct(c.car_0_1)}</div>
-          <div className="s">abnormal return, days 0 to +1</div></div>
-        <div className="tile"><div className="k">Next month</div><div className={`v ${signClass(c.car_2_20)}`}>{pct(c.car_2_20)}</div>
-          <div className="s">abnormal return, days +2 to +20</div></div>
-        <div className="tile"><div className="k">Hedging</div><div className="v">{pctile(c.hedging_pct)}</div>
-          <div className="s">{c.hedging_per1k == null ? "" : `${c.hedging_per1k.toFixed(1)} words per 1,000`}</div></div>
-        <div className="tile"><div className="k">Net tone</div><div className="v">{pctile(c.net_tone_pct)}</div>
-          <div className="s">positive minus negative words</div></div>
+        <Stat label="Earnings vs expectations" value={<BeatPill beat={c.beat} />}
+              note={c.sources_disagree ? "data sources disagree" : c.surprise_pct == null ? "" : `surprise ranked ${pctile(c.surprise_pct)} that quarter`} />
+        <Stat label="2-day reaction" tone={signClass(c.car_0_1)} value={pct(c.car_0_1)} note="abnormal return, days 0 to +1" accent />
+        <Stat label="Next month" tone={signClass(c.car_2_20)} value={pct(c.car_2_20)} note="abnormal return, days +2 to +20" />
+        <Stat label="Hedging" value={pctile(c.hedging_pct)} note={c.hedging_per1k == null ? "" : `${c.hedging_per1k.toFixed(1)} words per 1,000`} />
+        <Stat label="Net tone" value={pctile(c.net_tone_pct)} note="positive minus negative words" />
       </div>
-      <p className="note">
+      <p className="note" style={{ margin: "-6px 0 20px" }}>
         {c.after_close ? "Call held after the market close, so the reaction starts the next trading day" : "Call held during or before market hours"}
         {c.reaction_day ? ` (${longDate(c.reaction_day)}).` : "."}
         {c.date_fixed ? ` The transcript is dated ${longDate(c.transcript_date)}; the study uses the earnings release date instead.` : ""}
       </p>
 
-      {window.length > 0 && (
-        <>
-          <h2>How the stock moved around the call</h2>
-          <p className="takeaway"><b>How to read:</b> % change from the close before the reaction day, {ticker} against the S&amp;P 500.</p>
-          <div className="panel"><WindowChart data={window} ticker={ticker} /></div>
-        </>
-      )}
+      <div className="stack">
+        {window.length > 0 && (
+          <Section
+            title="How the stock moved around the call"
+            takeaway={<><b>How to read:</b> % change from the close before the reaction day, {ticker} against the S&amp;P 500.</>}
+          >
+            <WindowChart data={window} ticker={ticker} />
+          </Section>
+        )}
 
-      {top && (
-        <>
-          <h2>The most hedged answer</h2>
-          <div className="panel highlight">
-            <p className="muted" style={{ marginTop: 0 }}>Analyst: {top.question}</p>
-            <p style={{ marginBottom: 0 }}>Management: {top.answer}</p>
-            <p className="note" style={{ marginBottom: 0 }}>{top.hedging_per1k.toFixed(1)} hedging words per 1,000 (uncertain words, weak modals like “may” and “could”, and phrases like “too early to tell”). Excerpt.</p>
-          </div>
-        </>
-      )}
+        {top && (
+          <Section
+            title="The most hedged answer"
+            foot={<>{top.hedging_per1k.toFixed(1)} hedging words per 1,000 (uncertain words, weak modals like “may” and “could”, and phrases like “too early to tell”). Excerpt.</>}
+          >
+            <figure className="quote">
+              <p className="who">Analyst</p>
+              <p className="q">{top.question}</p>
+              <p className="who">Management</p>
+              <blockquote className="a" style={{ margin: 0 }}>{top.answer}</blockquote>
+            </figure>
+          </Section>
+        )}
 
-      {qa.length > 0 && (
-        <>
-          <h2>All {qa.length} questions and answers</h2>
-          <p className="takeaway">The orange bar shows how much each answer hedged. Text is shortened.</p>
-          <div className="panel" style={{ paddingTop: 0, paddingBottom: 0 }}>
-            {qa.map((p) => (
-              <div className="qa" key={p.pair_no}>
-                <p className="q">Q{p.pair_no}. {p.question}</p>
-                <p className="a">{p.answer}</p>
-                <div className="meta">
-                  <span><span className="bar" style={{ width: `${Math.max(2, (60 * p.hedging_per1k) / maxHedge)}px` }} /> hedging {p.hedging_per1k.toFixed(1)}</span>
-                  <span>on-topic {p.relevance == null ? "–" : p.relevance.toFixed(2)}</span>
-                  {p.non_answer ? <span className="badge">non-answer phrase</span> : null}
+        {qa.length > 0 && (
+          <Section title={`All ${qa.length} questions and answers`} takeaway="The orange bar shows how much each answer hedged, relative to the most hedged answer on this call. Text is shortened." flush>
+            <div style={{ borderTop: "1px solid var(--line)" }}>
+              {qa.map((p) => (
+                <div className="qa" key={p.pair_no}>
+                  <span className="no">Q{p.pair_no}</span>
+                  <div>
+                    <p className="q">{p.question}</p>
+                    <p className="a">{p.answer}</p>
+                    <div className="meta">
+                      <span>
+                        <span className="meter"><span style={{ width: `${Math.max(4, (100 * p.hedging_per1k) / maxHedge)}%` }} /></span>
+                        hedging {p.hedging_per1k.toFixed(1)}
+                      </span>
+                      <span>on-topic {p.relevance == null ? "–" : p.relevance.toFixed(2)}</span>
+                      {p.non_answer ? <span className="pill hedge">non-answer phrase</span> : null}
+                    </div>
+                  </div>
                 </div>
-              </div>
-            ))}
-          </div>
-        </>
-      )}
-
-      <div className="pager">
-        <span>{prev && <Link href={`/company/${ticker}/call/${prev.call_date}/`}>← {longDate(prev.call_date)}</Link>}</span>
-        <span>{next && <Link href={`/company/${ticker}/call/${next.call_date}/`}>{longDate(next.call_date)} →</Link>}</span>
+              ))}
+            </div>
+          </Section>
+        )}
       </div>
+
+      <nav className="pager" aria-label="Other calls">
+        {prev && <Link href={`/company/${ticker}/call/${prev.call_date}/`}><span className="k">← Previous call</span>{longDate(prev.call_date)}</Link>}
+        {next && <Link className="next" href={`/company/${ticker}/call/${next.call_date}/`}><span className="k">Next call →</span>{longDate(next.call_date)}</Link>}
+      </nav>
     </>
   );
 }

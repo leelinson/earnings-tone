@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import ForestPlot from "@/components/ForestPlot";
 import { CarPath, DecileBars, QuintileBars, SpreadByQuarter, ToneOverTime } from "@/components/StudyCharts";
+import { InfoCallout, PageHead, Section, Stat, Takeaway, Toc } from "@/components/ui";
 import { study } from "@/lib/data";
 import { bps } from "@/lib/format";
 
@@ -24,54 +25,67 @@ export default function Results() {
 
   return (
     <>
-      <h1>Main results</h1>
-      <p className="lead">
-        Across {sum.calls.toLocaleString()} calls, the earnings surprise explains the stock’s reaction and hedging does
-        not add a reliable signal. The one lead is net tone: more positive Q&amp;A language goes with a better 2-day return.
-      </p>
-      <div className="howto">
+      <PageHead
+        eyebrow="Main results"
+        title="The earnings number moves the stock. Hedging does not."
+        lead={<>Across {sum.calls.toLocaleString()} calls, the earnings surprise explains the stock’s reaction and hedging does
+          not add a reliable signal. The one lead is net tone: more positive Q&amp;A language goes with a better 2-day return.</>}
+      />
+
+      <InfoCallout>
         <b>How to read these numbers</b>
         <ul>
           <li>Returns are <b>abnormal</b>: the stock’s move minus what the market predicted, over days 0 to +1 after the call.</li>
           <li>Effects are in basis points (bps; 100 bps = 1%) for a one-standard-deviation change in the measure.</li>
           <li>A <b>t-stat</b> beyond ±2 is the usual bar for “probably not luck”.</li>
         </ul>
-      </div>
+      </InfoCallout>
 
       <div className="tiles">
-        <div className="tile"><div className="k">Earnings surprise</div><div className="v up">{bps(sum.sue_coef_bps)}</div><div className="s">t = {sum.sue_t.toFixed(1)}, clear effect</div></div>
-        <div className="tile"><div className="k">Hedging</div><div className="v">{bps(reg("H1:z_qa_hedging").coef_bps)}</div><div className="s">t = {reg("H1:z_qa_hedging").t_stat.toFixed(2)}, not significant</div></div>
-        <div className="tile"><div className="k">Q&amp;A net tone</div><div className="v up">{bps(tone.coef_bps)}</div><div className="s">t = {tone.t_stat.toFixed(2)}, the one lead</div></div>
-        <div className="tile"><div className="k">Least minus most hedging group</div><div className="v">{bps(ls("Full sample").mean_spread_bps)}</div><div className="s">per quarter, t = {ls("Full sample").t_stat.toFixed(2)}</div></div>
+        <Stat label="Earnings surprise" tone="up" value={bps(sum.sue_coef_bps)} note={`t = ${sum.sue_t.toFixed(1)}, clear effect`} />
+        <Stat label="Hedging" value={bps(reg("H1:z_qa_hedging").coef_bps)} note={`t = ${reg("H1:z_qa_hedging").t_stat.toFixed(2)}, not significant`} />
+        <Stat label="Q&A net tone" tone="up" value={bps(tone.coef_bps)} note={`t = ${tone.t_stat.toFixed(2)}, the one lead`} accent />
+        <Stat label="Least minus most hedging group" value={bps(ls("Full sample").mean_spread_bps)} note={`per quarter, t = ${ls("Full sample").t_stat.toFixed(2)}`} />
       </div>
 
-      <h2>Effect of each measure on the stock’s reaction</h2>
-      <p className="takeaway"><b>Takeaway:</b> only the earnings surprise and net tone clear the bar; hedging, evasiveness and the tone gap could all be zero.</p>
-      <div className="panel"><ForestPlot rows={rows} /></div>
+      <Toc items={[["effects", "Effect sizes"], ["sanity", "Sanity check"], ["groups", "Tone groups"], ["quarters", "By quarter"], ["evasion", "Evasiveness"], ["time", "Tone over time"]]} />
 
-      <h2>Sanity check: bigger surprises, bigger reactions</h2>
-      <p className="takeaway"><b>Takeaway:</b> returns rise from the worst misses (about −250 bps) to the biggest beats (about +270 bps), so the return measure works.</p>
-      <div className="panel"><DecileBars data={s.sue_bins} xLabel="Surprise decile (1 = worst miss)" /></div>
+      <div className="stack">
+        <Section id="effects" title="Effect of each measure on the stock’s reaction"
+          takeaway={<Takeaway>only the earnings surprise and net tone clear the bar; hedging, evasiveness and the tone gap could all be zero.</Takeaway>}>
+          <ForestPlot rows={rows} />
+        </Section>
 
-      <h2>How each tone group’s stock moved</h2>
-      <p className="takeaway"><b>Takeaway:</b> calls are sorted into five groups by hedging plus evasiveness each quarter; the most hedged group lags after the call, but the gap is small next to the noise.</p>
-      <div className="panel"><CarPath data={s.car_path} /></div>
+        <Section id="sanity" title="Sanity check: bigger surprises, bigger reactions"
+          takeaway={<Takeaway>returns rise from the worst misses (about −250 bps) to the biggest beats (about +270 bps), so the return measure works.</Takeaway>}>
+          <DecileBars data={s.sue_bins} xLabel="Surprise decile (1 = worst miss)" />
+        </Section>
 
-      <h2>Average 2-day return by tone group</h2>
-      <p className="takeaway"><b>Takeaway:</b> the gap between groups 1 and 5 was {Math.round(ls("In sample").mean_spread_bps)} bps in 2018 to 2022 and almost vanished from 2023 ({Math.round(ls("Out of sample").mean_spread_bps)} bps).</p>
-      <div className="panel"><QuintileBars data={s.quintiles} /></div>
+        <Section id="groups" title="How each tone group’s stock moved"
+          takeaway={<Takeaway>calls are sorted into five groups by hedging plus evasiveness each quarter; the most hedged group lags after the call, but the gap is small next to the noise.</Takeaway>}>
+          <CarPath data={s.car_path} />
+        </Section>
 
-      <h2>The gap quarter by quarter</h2>
-      <p className="takeaway"><b>Takeaway:</b> the spread swings from strongly positive to negative between quarters, which is why it is not significant.</p>
-      <div className="panel"><SpreadByQuarter data={s.spread_by_quarter} split={sum.oos_split} /></div>
+        <Section title="Average 2-day return by tone group"
+          takeaway={<Takeaway>the gap between groups 1 and 5 was {Math.round(ls("In sample").mean_spread_bps)} bps in 2018 to 2022 and almost vanished from 2023 ({Math.round(ls("Out of sample").mean_spread_bps)} bps).</Takeaway>}>
+          <QuintileBars data={s.quintiles} />
+        </Section>
 
-      <h2>Evasiveness and the reaction</h2>
-      <p className="takeaway"><b>Takeaway:</b> no pattern: the most evasive calls do no worse than the most direct ones.</p>
-      <div className="panel"><DecileBars data={s.evasion_bins} xLabel="Evasiveness decile (1 = most direct)" /></div>
+        <Section id="quarters" title="The gap quarter by quarter"
+          takeaway={<Takeaway>the spread swings from strongly positive to negative between quarters, which is why it is not significant.</Takeaway>}>
+          <SpreadByQuarter data={s.spread_by_quarter} split={sum.oos_split} />
+        </Section>
 
-      <h2>Tone over time</h2>
-      <p className="takeaway"><b>Takeaway:</b> hedging crept up from about 10 to 12 words per 1,000 since 2018, which is why each call is compared only with calls from the same quarter.</p>
-      <div className="panel"><ToneOverTime data={s.tone_by_quarter} /></div>
+        <Section id="evasion" title="Evasiveness and the reaction"
+          takeaway={<Takeaway>no pattern: the most evasive calls do no worse than the most direct ones.</Takeaway>}>
+          <DecileBars data={s.evasion_bins} xLabel="Evasiveness decile (1 = most direct)" />
+        </Section>
+
+        <Section id="time" title="Tone over time"
+          takeaway={<Takeaway>hedging crept up from about 10 to 12 words per 1,000 since 2018, which is why each call is compared only with calls from the same quarter.</Takeaway>}>
+          <ToneOverTime data={s.tone_by_quarter} />
+        </Section>
+      </div>
     </>
   );
 }

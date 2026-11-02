@@ -58,7 +58,7 @@ function Narrow({ rows, unit = "bps per 1 SD" }: { rows: Row[]; unit?: string })
 }
 
 function Wide({ rows, unit = "bps per 1 SD" }: { rows: Row[]; unit?: string }) {
-  const W = 720, labelW = 280, statW = 110, rowH = 30, top = 28;
+  const W = 960, labelW = 300, statW = 120, rowH = 34, top = 30;
   const plotW = W - labelW - statW - 16;
   const { lo, hi, ticks } = scale(rows);
   const x = (v: number) => labelW + ((v - lo) / (hi - lo)) * plotW;
