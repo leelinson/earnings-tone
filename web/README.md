@@ -14,3 +14,7 @@ npm run build      # static files in out/ (about 1,900 pages)
 For GitHub Pages under `/earnings-tone`, build with `NEXT_BASE_PATH=/earnings-tone npm run build`.
 
 `web/data/` is not committed. It holds derived values only (tone scores, abnormal returns, beat or miss, Q&A excerpts).
+
+## Design
+
+All styling lives in `app/globals.css` as tokens on `:root` (light and dark). Pages are assembled from the pieces in `components/ui.tsx` (`PageHead`, `Stat`, `Section` with a one-line takeaway, `InfoCallout`, `Toc`), and every Recharts chart takes its axes, grid, tooltip and legend from `components/chartTheme.tsx`. Inter and Source Serif 4 are downloaded by `next/font` at build time and served with the site.

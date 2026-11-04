@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { Fragment } from "react";
+import { PageHead, Section, Toc } from "@/components/ui";
 import { study } from "@/lib/data";
 
 export const metadata: Metadata = { title: "Data and glossary" };
@@ -29,59 +30,67 @@ export default function DataPage() {
   const sum = s.summary[0];
   return (
     <>
-      <h1>Data and glossary</h1>
-      <p className="lead">
-        Where the {sum.calls.toLocaleString()} calls came from, how each number was built, and what the terms mean.
-      </p>
+      <PageHead
+        eyebrow="Data and glossary"
+        title="Where the numbers come from"
+        lead={<>Where the {sum.calls.toLocaleString()} calls came from, how each number was built, and what the terms mean.</>}
+      />
 
-      <h2>From transcripts to the final sample</h2>
-      <div className="panel flow">
-        {flow.map((f) => (
-          <div className="row" key={f.step}>
-            <div className="fbar" style={{ width: `${(100 * f.calls) / max}%` }}>{f.stage}</div>
-            <b style={{ textAlign: "right" }}>{f.calls.toLocaleString()}</b>
+      <Toc items={[["flow", "Sample"], ["method", "Method"], ["glossary", "Glossary"], ["caveats", "Caveats"], ["sources", "Sources"]]} />
+
+      <div className="stack">
+        <Section id="flow" title="From transcripts to the final sample">
+          <div className="flow">
+            {flow.map((f) => (
+              <div className="row" key={f.step}>
+                <div className="track"><div className="fbar" style={{ width: `${(100 * f.calls) / max}%` }}>{f.stage}</div></div>
+                <b>{f.calls.toLocaleString()}</b>
+              </div>
+            ))}
           </div>
-        ))}
-      </div>
+        </Section>
 
-      <h2>Method</h2>
-      <ol>
-        <li>Split each transcript into prepared remarks and Q&amp;A, label speakers as operator, executive or analyst, and pair each question with its answer.</li>
-        <li>Score executives’ Q&amp;A answers with the Loughran-McDonald finance dictionary: hedging, net tone, and evasiveness from question-answer similarity.</li>
-        <li>Standardize each score within its calendar quarter, so a market-wide change in tone does not leak into the results.</li>
-        <li>Estimate each stock’s normal relationship with SPY over trading days −250 to −30, then measure abnormal returns for days 0 to +1 and +2 to +20.</li>
-        <li>Move the event date to the earnings release date for 180 transcripts dated one to three days late.</li>
-        <li>Regress abnormal returns on each tone measure, controlling for the EPS surprise and the prior month’s return, with sector × quarter effects and firm-clustered errors.</li>
-        <li>Check it: quintile portfolios, a 2023-onward holdout, 100 placebo shuffles and alternative samples.</li>
-      </ol>
+        <Section id="method" title="Method">
+          <ol className="method">
+            <li>Split each transcript into prepared remarks and Q&amp;A, label speakers as operator, executive or analyst, and pair each question with its answer.</li>
+            <li>Score executives’ Q&amp;A answers with the Loughran-McDonald finance dictionary: hedging, net tone, and evasiveness from question-answer similarity.</li>
+            <li>Standardize each score within its calendar quarter, so a market-wide change in tone does not leak into the results.</li>
+            <li>Estimate each stock’s normal relationship with SPY over trading days −250 to −30, then measure abnormal returns for days 0 to +1 and +2 to +20.</li>
+            <li>Move the event date to the earnings release date for 180 transcripts dated one to three days late.</li>
+            <li>Regress abnormal returns on each tone measure, controlling for the EPS surprise and the prior month’s return, with sector × quarter effects and firm-clustered errors.</li>
+            <li>Check it: quintile portfolios, a 2023-onward holdout, 100 placebo shuffles and alternative samples.</li>
+          </ol>
+        </Section>
 
-      <h2>Glossary</h2>
-      <div className="panel">
-        <dl className="glossary">
-          {GLOSSARY.map(([t, d]) => (<Fragment key={t}><dt>{t}</dt><dd>{d}</dd></Fragment>))}
-        </dl>
-      </div>
+        <Section id="glossary" title="Glossary">
+          <dl className="glossary">
+            {GLOSSARY.map(([t, d]) => (<Fragment key={t}><dt>{t}</dt><dd>{d}</dd></Fragment>))}
+          </dl>
+        </Section>
 
-      <h2>Caveats</h2>
-      <ul>
-        <li>64 tech and communication services firms only; results may not carry over to other sectors.</li>
-        <li>The dictionary counts words without context, so “we are not uncertain” still counts as uncertain.</li>
-        <li>EPS consensus comes from public datasets, not I/B/E/S; 70 calls where sources disagree are flagged and tested separately.</li>
-        <li>No control yet for company size or a sector benchmark instead of SPY.</li>
-        <li>Netflix’s interview-format calls have no Q&amp;A section and are excluded; EA and Juniper have no price history.</li>
-      </ul>
+        <Section id="caveats" title="Caveats">
+          <ul className="plain">
+            <li>64 tech and communication services firms only; results may not carry over to other sectors.</li>
+            <li>The dictionary counts words without context, so “we are not uncertain” still counts as uncertain.</li>
+            <li>EPS consensus comes from public datasets, not I/B/E/S; 70 calls where sources disagree are flagged and tested separately.</li>
+            <li>No control yet for company size or a sector benchmark instead of SPY.</li>
+            <li>Netflix’s interview-format calls have no Q&amp;A section and are excluded; EA and Juniper have no price history.</li>
+          </ul>
+        </Section>
 
-      <h2>Sources and licenses</h2>
-      <div className="panel table-scroll">
-        <table>
-          <thead><tr><th className="l">Data</th><th className="l">Source</th><th className="l">How it appears here</th></tr></thead>
-          <tbody>
-            <tr><td className="l">Transcripts</td><td className="l">Hugging Face dataset kurry/sp500_earnings_transcripts</td><td className="l">Scores and short excerpts only</td></tr>
-            <tr><td className="l">Prices</td><td className="l">Yahoo Finance chart data</td><td className="l">Adjusted closes, abnormal returns</td></tr>
-            <tr><td className="l">EPS surprise</td><td className="l">sovai/earnings_surprise (academic use) and a Zacks-based Hugging Face mirror</td><td className="l">Beat, miss or in line and a percentile; no raw estimates</td></tr>
-            <tr><td className="l">Word lists</td><td className="l">Loughran-McDonald master dictionary</td><td className="l">Used to score tone</td></tr>
-          </tbody>
-        </table>
+        <Section id="sources" title="Sources and licenses" flush>
+          <div className="table-scroll">
+            <table>
+              <thead><tr><th className="l">Data</th><th className="l">Source</th><th className="l">How it appears here</th></tr></thead>
+              <tbody>
+                <tr><td className="l"><b>Transcripts</b></td><td className="l">Hugging Face dataset kurry/sp500_earnings_transcripts</td><td className="l">Scores and short excerpts only</td></tr>
+                <tr><td className="l"><b>Prices</b></td><td className="l">Yahoo Finance chart data</td><td className="l">Adjusted closes, abnormal returns</td></tr>
+                <tr><td className="l"><b>EPS surprise</b></td><td className="l wrap-cell">sovai/earnings_surprise (academic use) and a Zacks-based Hugging Face mirror</td><td className="l">Beat, miss or in line and a percentile; no raw estimates</td></tr>
+                <tr><td className="l"><b>Word lists</b></td><td className="l">Loughran-McDonald master dictionary</td><td className="l">Used to score tone</td></tr>
+              </tbody>
+            </table>
+          </div>
+        </Section>
       </div>
     </>
   );
