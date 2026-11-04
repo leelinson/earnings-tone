@@ -6,7 +6,7 @@ from pathlib import Path
 
 import pandas as pd
 
-from . import data, features, prices, study, surprise, synthetic, ticker_report
+from . import data, features, nlp, prices, study, surprise, synthetic, ticker_report
 
 
 def cmd_demo(a):
@@ -65,6 +65,16 @@ def cmd_ticker(a):
     print(f"{res['ticker']}: {len(ts)} calls, {len(res['answers'])} Q&A exchanges. Report: {path}")
 
 
+def cmd_nlp(a):
+    ts = data.load_transcripts(a.transcripts)
+    scores = nlp.build_scores(ts, nlp.FinBert(onnx_file=a.onnx_file), progress=True)
+    if a.features:  # append to an existing features table
+        f = pd.read_parquet(a.features)
+        scores = f.merge(scores, on=["ticker", "call_date"], how="left")
+    scores.to_parquet(a.out)
+    print(f"{len(scores)} rows with FinBERT tone -> {a.out}")
+
+
 def main(argv=None):
     p = argparse.ArgumentParser(prog="earnings_tone")
     sub = p.add_subparsers(required=True)
@@ -83,6 +93,10 @@ def main(argv=None):
     s.add_argument("--lm-dict"); s.add_argument("--panel", help="study panel parquet, adds returns and peer ranks")
     s.add_argument("--call", help="focus call date (default: latest)"); s.add_argument("--recent", type=int, default=4)
     s.add_argument("--out", help="output folder (default: reports/<TICKER>)"); s.set_defaults(f=cmd_ticker)
+    s = sub.add_parser("nlp", help="FinBERT sentence tone for every call (fb_* columns)")
+    s.add_argument("--transcripts", required=True); s.add_argument("--out", required=True)
+    s.add_argument("--features", help="features parquet to merge the scores into")
+    s.add_argument("--onnx-file", default=nlp.ONNX_FILE); s.set_defaults(f=cmd_nlp)
     a = p.parse_args(argv)
     a.f(a)
 
