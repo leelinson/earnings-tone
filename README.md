@@ -92,7 +92,7 @@ Repo settings need Pages set to deploy from GitHub Actions. Every push to main a
 To switch it on:
 
 1. Get a free key at [alphavantage.co/support/#api-key](https://www.alphavantage.co/support/#api-key) and add it as the repository secret `ALPHAVANTAGE_API_KEY`.
-2. Actions → Live feed → Run workflow with mode `probe` (5 requests) to check the key and how Alpha Vantage labels fiscal quarters.
+2. Actions → Live feed → Run workflow with mode `probe` (6 requests) to check the key and the fiscal quarter labels. Labels count quarters forward from each company's last Hugging Face call (`pipeline/universe/fiscal_anchors.csv`, built by `scripts/build_fiscal_anchors.py`), and a transcript whose opening names a different quarter is never stored.
 3. Run once with mode `history` (about 2 hours) to score the roughly 500 Hugging Face calls from 2024 to May 2025, so every company has a baseline for the "vs own history" column.
 
 After that the daily schedule takes over. Locally: `ALPHAVANTAGE_API_KEY=... python -m earnings_tone.cli feed-update --state state --site-out ../web/data/feed`.
