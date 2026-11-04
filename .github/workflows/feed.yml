@@ -10,7 +10,7 @@ on:
   workflow_dispatch:
     inputs:
       mode:
-        description: "update (daily run), history (one-off: score 2024+ Hugging Face calls as baselines, about 2 hours), probe (check the API)"
+        description: "update (daily run), history (one-off: score 2024+ Hugging Face calls as baselines, about 2 hours), probe (check the API and quarter labels, 6 requests)"
         type: choice
         options: [update, history, probe]
         default: update

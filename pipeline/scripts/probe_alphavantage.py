@@ -1,30 +1,31 @@
-"""Check how Alpha Vantage labels transcript quarters (fiscal vs calendar). Uses 5 requests.
+"""Check the key and the fiscal quarter labels end to end. Uses 6 requests.
 
-For NVDA (fiscal year ends in January) and AAPL (September), asks for the call the
-Hugging Face set dates 2025-02-26 / 2025-01-30 under both labels and reports which label
-returns the same call (word overlap of the opening remarks). Prints metadata only.
+For NVDA (fiscal year ends in January), AAPL (September) and MSFT (June): fetch EARNINGS,
+label quarters by counting from the Hugging Face anchor, request the newest reported
+quarter's transcript, and check that its opening names that quarter. Prints metadata only.
+(The first probe, 2026-11-04, confirmed Alpha Vantage labels transcripts by fiscal quarter:
+NVDA 2025Q4 and AAPL 2025Q1 matched the Hugging Face calls with 0.90 and 0.96 word overlap.)
 Usage: ALPHAVANTAGE_API_KEY=... python probe_alphavantage.py
 """
 import os
 import pandas as pd
-import pyarrow.parquet as pq
-from huggingface_hub import hf_hub_download
 from earnings_tone import alphavantage as av
 
-c = av.Client(os.environ["ALPHAVANTAGE_API_KEY"], budget=5)
-e = c.earnings("NVDA")
-print("EARNINGS NVDA rows:", len(e), "latest:", e.tail(2).drop(columns=["ticker"]).to_dict("records"))
-path = hf_hub_download("kurry/sp500_earnings_transcripts", "parquet_files/part-0.parquet", repo_type="dataset")
-hf = pq.read_table(path, columns=["symbol", "date", "content"], filters=[("year", "==", 2025)]).to_pandas()
-words = lambda s: set(str(s).lower().split()[:400])
-for sym, date, labels in [("NVDA", "2025-02-26", ["2025Q4", "2024Q4"]), ("AAPL", "2025-01-30", ["2025Q1", "2024Q4"])]:
-    ref = hf[(hf.symbol == sym) & (hf.date.str[:10] == date)]
-    ref_w = words(ref.content.iloc[0]) if len(ref) else set()
-    for q in labels:
-        tr = c.transcript(sym, q)
-        text = " ".join(x.get("content", "") for x in tr[:6])
-        w = words(text)
-        overlap = len(w & ref_w) / max(len(w | ref_w), 1)
-        print(f"{sym} {q}: {len(tr)} entries, keys={sorted(tr[0]) if tr else []}, "
-              f"overlap with HF {date} call = {overlap:.2f}, titles={[x.get('title') for x in tr[:4]]}")
+c = av.Client(os.environ["ALPHAVANTAGE_API_KEY"], budget=6)
+anchors = av.load_anchors()
+today = pd.Timestamp.now().normalize()
+ok = True
+for sym in ("NVDA", "AAPL", "MSFT"):
+    e = c.earnings(sym, anchors.get(sym))
+    done = e[e["report_date"] < today]
+    last = done.iloc[-1]
+    print(f"{sym}: anchor {anchors.get(sym)}, labels from {last['label_source']}; newest reported quarters:")
+    print(done.tail(3)[["fiscal_period_end", "report_date", "fiscal_quarter"]].to_string(index=False))
+    tr = c.transcript(sym, last["fiscal_quarter"])
+    st = av.stated_quarter(tr)
+    agree = bool(tr) and av.label_agrees(last["fiscal_quarter"], tr)
+    ok &= agree
+    print(f"  transcript {last['fiscal_quarter']}: {len(tr)} entries, opening names {st}, agrees={agree}")
 print("requests used:", c.used)
+if not ok:
+    raise SystemExit("Label check failed: do not run update or history until fixed")

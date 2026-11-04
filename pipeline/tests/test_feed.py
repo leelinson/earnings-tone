@@ -11,7 +11,7 @@ from test_nlp import fake_scorer
 TODAY = pd.Timestamp("2025-08-01")
 
 ENTRIES = [
-    {"speaker": "Operator", "title": "Operator", "content": "Welcome to the second quarter call.", "sentiment": "0.1"},
+    {"speaker": "Operator", "title": "Operator", "content": "Welcome to the earnings call.", "sentiment": "0.1"},
     {"speaker": "Jane Doe", "title": "Chief Executive Officer", "content": "Revenue grew strongly this quarter. Margins grew in every region.", "sentiment": "0.8"},
     {"speaker": "John Roe", "title": "Chief Financial Officer", "content": "Cash flow grew to a record level for the year.", "sentiment": "0.7"},
     {"speaker": "Operator", "title": "Operator", "content": "We will now begin the question-and-answer session. Our first question comes from Sam Lee with Big Bank.", "sentiment": "0.0"},
@@ -73,12 +73,72 @@ def test_fiscal_quarter(end, fy, label):
     assert av.fiscal_quarter(pd.Timestamp(end), fy) == label
 
 
-def test_parse_earnings_reads_fiscal_year_end():
-    e = av.parse_earnings({"symbol": "nvda", "annualEarnings": [{"fiscalDateEnding": "2025-01-26"}],
-                           "quarterlyEarnings": [{"fiscalDateEnding": "2025-07-27", "reportedDate": "2025-08-27",
-                                                  "reportedEPS": "1.05", "estimatedEPS": "1.01",
-                                                  "surprisePercentage": "3.96", "reportTime": "post-market"}]})
-    assert e.loc[0, "fiscal_quarter"] == "2026Q2" and e.loc[0, "ticker"] == "NVDA" and e.loc[0, "surprise_pct"] == 3.96
+NVDA_EARNINGS = {"symbol": "NVDA",
+                 # Alpha Vantage's annual rows: the newest is a partial year, and the probe showed
+                 # they don't give NVDA's January year end, so labels must not come from them.
+                 "annualEarnings": [{"fiscalDateEnding": "2026-07-31"}, {"fiscalDateEnding": "2025-12-31"}],
+                 "quarterlyEarnings": [
+                     {"fiscalDateEnding": "2026-07-31", "reportedDate": "2026-08-26", "reportedEPS": "2.22",
+                      "estimatedEPS": "2.09", "surprisePercentage": "6.2", "reportTime": "post-market"},
+                     {"fiscalDateEnding": "2026-04-30", "reportedDate": "2026-05-20", "reportedEPS": "1.87",
+                      "estimatedEPS": "1.77", "surprisePercentage": "5.6", "reportTime": "post-market"},
+                     {"fiscalDateEnding": "2025-04-30", "reportedDate": "2025-05-28", "reportedEPS": "0.81",
+                      "estimatedEPS": "0.73", "surprisePercentage": "11", "reportTime": "post-market"},
+                     {"fiscalDateEnding": "2025-01-31", "reportedDate": "2025-02-26", "reportedEPS": "0.89",
+                      "estimatedEPS": "0.85", "surprisePercentage": "4.7", "reportTime": "post-market"}]}
+
+
+def test_parse_earnings_counts_quarters_from_the_anchor():
+    # Missing quarters in between are fine as long as AV lists every period end it has;
+    # here it skips none between the anchor (FY2025 Q4, reported 2025-02-26) and 2025-05-28.
+    full = dict(NVDA_EARNINGS)
+    full["quarterlyEarnings"] = NVDA_EARNINGS["quarterlyEarnings"][:2] + [
+        {"fiscalDateEnding": "2026-01-31", "reportedDate": "2026-02-25"},
+        {"fiscalDateEnding": "2025-10-31", "reportedDate": "2025-11-19"},
+        {"fiscalDateEnding": "2025-07-31", "reportedDate": "2025-08-27"},
+    ] + NVDA_EARNINGS["quarterlyEarnings"][2:]
+    e = av.parse_earnings(full, anchor=(pd.Timestamp("2025-02-26"), "2025Q4"))
+    assert e["fiscal_quarter"].tolist() == ["2025Q4", "2026Q1", "2026Q2", "2026Q3", "2026Q4", "2027Q1", "2027Q2"]
+    assert (e["label_source"] == "anchor").all() and e.iloc[-1]["surprise_pct"] == 6.2
+
+
+def test_parse_earnings_without_anchor_falls_back_and_says_so():
+    e = av.parse_earnings({"symbol": "x", "annualEarnings": [{"fiscalDateEnding": "2025-06-30"},
+                                                              {"fiscalDateEnding": "2024-12-31"},
+                                                              {"fiscalDateEnding": "2023-12-31"}],
+                           "quarterlyEarnings": [{"fiscalDateEnding": "2025-06-30", "reportedDate": "2025-07-29"}]})
+    assert e.loc[0, "fiscal_quarter"] == "2025Q2" and e.loc[0, "label_source"] == "fy_month_guess"
+
+
+def test_anchors_file_covers_the_big_names():
+    a = av.load_anchors()
+    assert a["NVDA"] == (pd.Timestamp("2025-02-26"), "2025Q4") and a["AAPL"][1] == "2025Q2"
+
+
+@pytest.mark.parametrize("text,label,ok", [
+    ("Welcome to NVIDIA's conference call for the third quarter of fiscal 2026.", "2026Q3", True),
+    ("Welcome to NVIDIA's conference call for the third quarter of fiscal 2026.", "2026Q2", False),
+    ("Good morning and welcome to the Q4 FY25 earnings call.", "2025Q4", True),
+    ("Welcome to the first quarter 2025 earnings conference call.", "2024Q1", False),
+    ("Thank you for standing by.", "2025Q1", True),
+])
+def test_label_agrees_with_transcript_opening(text, label, ok):
+    assert av.label_agrees(label, [{"content": text}]) is ok
+
+
+def test_mismatched_transcript_is_never_stored():
+    entries = [dict(ENTRIES[0], content="Welcome to the fourth quarter fiscal 2025 call.")] + ENTRIES[1:]
+    class Wrong(FakeAV):
+        def __call__(self, url):
+            out = json.loads(super().__call__(url))
+            if "transcript" in out:
+                out["transcript"] = entries
+            return json.dumps(out)
+    state = feed.State()
+    stats = feed.update(state, uni(["AAA"]), av.Client("k", budget=2, min_interval=0, opener=Wrong()), fake_scorer, LEX,
+                        today=TODAY, log=lambda *_: None, anchors={})
+    assert stats["label_mismatch"] == 1 and state.calls.empty
+    assert state.attempts["AAA|2025Q2"]["tries"] == feed.MAX_TRIES
 
 
 def test_to_transcript_labels_sections_and_roles():

@@ -126,16 +126,19 @@ def plan(state: State, uni: pd.DataFrame, today: pd.Timestamp) -> list[str]:
 
 
 def update(state: State, uni: pd.DataFrame, client: av.Client, scorer, lexicon,
-           today: pd.Timestamp | None = None, log=print) -> dict:
+           today: pd.Timestamp | None = None, log=print, anchors: dict | None = None) -> dict:
     today = (today or pd.Timestamp.now(tz="America/New_York").tz_localize(None)).normalize()
-    new_rows, stats = [], {"earnings_fetched": 0, "transcripts_fetched": 0, "transcripts_empty": 0, "scored": 0}
+    anchors = av.load_anchors() if anchors is None else anchors
+    new_rows = []
+    stats = {"earnings_fetched": 0, "transcripts_fetched": 0, "transcripts_empty": 0,
+             "label_mismatch": 0, "scored": 0}
     yahoo_last = dict(zip(uni["ticker"], uni["earnings_at"]))
     try:
         for ticker in plan(state, uni, today):
             last = yahoo_last.get(ticker)
             last = None if last is None or pd.isna(last) else pd.Timestamp(last)
             if _earnings_stale(state, ticker, last, today):
-                e = client.earnings(ticker)
+                e = client.earnings(ticker, anchors.get(ticker))
                 stats["earnings_fetched"] += 1
                 if not e.empty:
                     e["ticker"] = ticker
@@ -146,6 +149,13 @@ def update(state: State, uni: pd.DataFrame, client: av.Client, scorer, lexicon,
                 key = f"{ticker}|{r['fiscal_quarter']}"
                 entries = client.transcript(ticker, r["fiscal_quarter"])
                 stats["transcripts_fetched"] += 1
+                if entries and not av.label_agrees(r["fiscal_quarter"], entries):
+                    # The opening names another quarter: our label is off, so never store it.
+                    state.attempts[key] = {"tries": MAX_TRIES, "last": str(today.date()),
+                                           "status": f"label_mismatch: says {av.stated_quarter(entries)}"}
+                    stats["label_mismatch"] += 1
+                    log(f"  {key}: transcript names {av.stated_quarter(entries)}, skipped")
+                    continue
                 after_close = r.get("report_time") != "pre-market"
                 t = av.to_transcript(ticker, r["report_date"], after_close, entries) if entries else None
                 if t is None or not t.qa_pairs():
