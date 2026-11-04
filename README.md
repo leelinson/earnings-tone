@@ -21,6 +21,8 @@ This repo holds the research pipeline and a web app built on top of it: a FastAP
 
 Bottom line: the EPS surprise dominates. Hedging and evasiveness add no reliable signal, the least-minus-most-hedged quintile spread fades from 94 bps (2018 to 2022) to 10 bps (2023 onward), and 100 placebo shuffles look like the real result. Q&A net tone is the one lead worth testing on new data.
 
+**FinBERT second opinion** (same calls, same specification, `pipeline/scripts/finbert_robustness.py`): FinBERT's answer tone is weaker than the dictionary's (+22 bps, t 1.26) and gone after 2023. Analyst question tone (+164 bps, t 8.3) and the share of negative answer sentences (-96 bps, t -4.0) are strong but move on day 0 with the news, so they likely restate the quarter. The one forward-looking result: a larger FinBERT tone gap (prepared remarks rosier than the answers) goes with weaker drift over days +2 to +20 (-48 bps, t -2.7; -75 bps, t -2.8 from 2023 onward), where the dictionary version (H3) was -14 bps, t -0.9.
+
 ## The app
 
 | Page | What it shows |
@@ -30,7 +32,7 @@ Bottom line: the EPS surprise dominates. Hedging and evasiveness add no reliable
 | Live feed | Newest calls from the 100 largest S&P 500 companies, updated daily: FinBERT and dictionary tone ranked against the company's history and that quarter's peers, EPS surprise, 2-day reaction, the most negative and positive sentences |
 | Project walkthrough | Hypotheses, verdicts and the 10 steps of the study |
 | Main results | Effect sizes, surprise-decile sanity check, returns by tone group, spread by quarter, tone over time |
-| Does it hold up? | 12 robustness checks, placebo test, full regression table |
+| Does it hold up? | 12 robustness checks, placebo test, FinBERT second opinion, full regression table |
 | Data and glossary | Sample flow, method, glossary, caveats, sources |
 
 | Company | Call |

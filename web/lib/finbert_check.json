@@ -1,0 +1,148 @@
+{
+ "model": "ProsusAI/finbert (ONNX export Xenova/finbert, fp32)",
+ "n_matched": 1737,
+ "rows": [
+  {
+   "check": "Dictionary Q&A net tone (main study, for comparison)",
+   "variable": "z_qa_net_tone",
+   "coef_bps": 44.9,
+   "se_bps": 20.8,
+   "t_stat": 2.15,
+   "n": 1735,
+   "note": ""
+  },
+  {
+   "check": "FinBERT tone in answers",
+   "variable": "z_fb_qa_net",
+   "coef_bps": 22.0,
+   "se_bps": 17.4,
+   "t_stat": 1.26,
+   "n": 1735,
+   "note": ""
+  },
+  {
+   "check": "FinBERT tone in answers, before 2023",
+   "variable": "z_fb_qa_net",
+   "coef_bps": 30.0,
+   "se_bps": 19.4,
+   "t_stat": 1.55,
+   "n": 1120,
+   "note": ""
+  },
+  {
+   "check": "FinBERT tone in answers, 2023 onward",
+   "variable": "z_fb_qa_net",
+   "coef_bps": 4.2,
+   "se_bps": 34.8,
+   "t_stat": 0.12,
+   "n": 615,
+   "note": ""
+  },
+  {
+   "check": "FinBERT share of negative answer sentences",
+   "variable": "z_fb_qa_neg_share",
+   "coef_bps": -95.8,
+   "se_bps": 23.8,
+   "t_stat": -4.04,
+   "n": 1735,
+   "note": ""
+  },
+  {
+   "check": "FinBERT tone in prepared remarks",
+   "variable": "z_fb_prep_net",
+   "coef_bps": 53.3,
+   "se_bps": 19.7,
+   "t_stat": 2.71,
+   "n": 1734,
+   "note": ""
+  },
+  {
+   "check": "FinBERT tone of analyst questions",
+   "variable": "z_fb_q_net",
+   "coef_bps": 164.4,
+   "se_bps": 19.9,
+   "t_stat": 8.26,
+   "n": 1735,
+   "note": ""
+  },
+  {
+   "check": "FinBERT tone gap, drift days +2 to +20",
+   "variable": "z_fb_tone_gap",
+   "coef_bps": -48.0,
+   "se_bps": 17.7,
+   "t_stat": -2.72,
+   "n": 1734,
+   "note": ""
+  },
+  {
+   "check": "FinBERT tone gap drift, before 2023",
+   "variable": "z_fb_tone_gap",
+   "coef_bps": -34.5,
+   "se_bps": 24.7,
+   "t_stat": -1.4,
+   "n": 1119,
+   "note": ""
+  },
+  {
+   "check": "FinBERT tone gap drift, 2023 onward",
+   "variable": "z_fb_tone_gap",
+   "coef_bps": -75.2,
+   "se_bps": 26.7,
+   "t_stat": -2.82,
+   "n": 615,
+   "note": ""
+  },
+  {
+   "check": "Dictionary tone gap drift (main study H3)",
+   "variable": "z_tone_gap",
+   "coef_bps": -13.9,
+   "se_bps": 15.3,
+   "t_stat": -0.91,
+   "n": 1735,
+   "note": ""
+  },
+  {
+   "check": "Analyst question tone, 2023 onward",
+   "variable": "z_fb_q_net",
+   "coef_bps": 163.4,
+   "se_bps": 33.8,
+   "t_stat": 4.83,
+   "n": 615,
+   "note": ""
+  },
+  {
+   "check": "Negative answer share, 2023 onward",
+   "variable": "z_fb_qa_neg_share",
+   "coef_bps": -72.7,
+   "se_bps": 39.0,
+   "t_stat": -1.87,
+   "n": 615,
+   "note": ""
+  },
+  {
+   "check": "Horse race: FinBERT answers tone",
+   "variable": "z_fb_qa_net",
+   "coef_bps": -15.1,
+   "se_bps": 23.6,
+   "t_stat": -0.64,
+   "n": 1735,
+   "note": "both tone measures in one regression"
+  },
+  {
+   "check": "Horse race: dictionary net tone",
+   "variable": "z_qa_net_tone",
+   "coef_bps": 55.3,
+   "se_bps": 28.0,
+   "t_stat": 1.97,
+   "n": 1735,
+   "note": "both tone measures in one regression"
+  }
+ ],
+ "spearman": {
+  "answers": 0.68,
+  "prepared": 0.679,
+  "tone_gap": 0.525
+ },
+ "mean_fb_qa_net": 0.22,
+ "mean_fb_prep_net": 0.365
+}
