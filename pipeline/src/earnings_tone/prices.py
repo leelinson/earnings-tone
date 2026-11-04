@@ -18,6 +18,36 @@ def fetch_prices(tickers: list[str], start: str, end: str | None = None, market:
     return px.dropna(how="all")
 
 
+def fetch_prices_yahoo(tickers: list[str], start: str = "2016-12-01", market: str = "SPY",
+                       pause: float = 0.3) -> pd.DataFrame:
+    """Adjusted closes from Yahoo's chart API (query1 only; yfinance also needs fc.yahoo.com).
+
+    Same wide shape as fetch_prices. Tickers that fail three times are left out.
+    """
+    import json
+    import time
+    import urllib.request
+
+    p1, p2 = int(pd.Timestamp(start).timestamp()), int(time.time())
+    cols = []
+    for t in sorted(set(tickers) | {market}):
+        url = (f"https://query1.finance.yahoo.com/v8/finance/chart/{t.replace('.', '-')}"
+               f"?period1={p1}&period2={p2}&interval=1d&events=div,split")
+        for k in range(3):
+            try:
+                req = urllib.request.Request(url, headers={"User-Agent": "Mozilla/5.0"})
+                r = json.load(urllib.request.urlopen(req, timeout=30))["chart"]["result"][0]
+                idx = (pd.to_datetime(r["timestamp"], unit="s", utc=True)
+                       .tz_convert(r["meta"]["exchangeTimezoneName"]).tz_localize(None).normalize())
+                cols.append(pd.Series(r["indicators"]["adjclose"][0]["adjclose"], index=idx, name=t, dtype=float))
+                break
+            except Exception:
+                time.sleep(2 ** k)
+        time.sleep(pause)
+    px = pd.concat(cols, axis=1).sort_index()
+    return px[~px.index.duplicated(keep="last")].dropna(how="all")
+
+
 def event_day0(dates: pd.DatetimeIndex, call_date: pd.Timestamp, after_close: bool) -> int | None:
     """Index of day 0: the call date if it was during market hours, else the next trading day."""
     pos = dates.searchsorted(call_date, side="right" if after_close else "left")

@@ -27,6 +27,7 @@ Bottom line: the EPS surprise dominates. Hedging and evasiveness add no reliable
 | --- | --- |
 | Explore a company | Search 66 companies; each has a weekly price chart with a dot per call and a table of every call |
 | Call page | Beat or miss, 2-day and next-month abnormal return, stock vs S&P 500 from day -5 to +20, the most hedged answer, all Q&A excerpts |
+| Live feed | Newest calls from the 100 largest S&P 500 companies, updated daily: FinBERT and dictionary tone ranked against the company's history and that quarter's peers, EPS surprise, 2-day reaction, the most negative and positive sentences |
 | Project walkthrough | Hypotheses, verdicts and the 10 steps of the study |
 | Main results | Effect sizes, surprise-decile sanity check, returns by tone group, spread by quarter, tone over time |
 | Does it hold up? | 12 robustness checks, placebo test, full regression table |
@@ -44,7 +45,7 @@ Bottom line: the EPS surprise dominates. Hedging and evasiveness add no reliable
 
 | Folder | What it holds |
 | --- | --- |
-| `pipeline/` | `earnings_tone` Python package (parse transcripts, score tone, event study), per-ticker NLP report (`ticker` command), scripts for the real-data run, 16 tests |
+| `pipeline/` | `earnings_tone` Python package (parse transcripts, score tone, event study), FinBERT scoring (`nlp`), live feed (`feed-update`, `feed-history`), per-ticker NLP report (`ticker` command), scripts for the real-data run, 31 tests |
 | `db/` | SQLite schema (8 tables) |
 | `api/` | Read-only FastAPI service with 10 endpoints, 8 tests, and `export_static.py` for the site |
 | `web/` | Static Next.js site, about 1,900 pages |
@@ -82,8 +83,24 @@ cd web && tar czf site-data.tar.gz data
 
 Repo settings need Pages set to deploy from GitHub Actions. Every push to main also redeploys, using the latest release's data.
 
+### Live feed
+
+`.github/workflows/feed.yml` runs every morning. It ranks S&P 500 members by market cap (Yahoo Finance screener, no key; membership list in `pipeline/universe/sp500_members.txt`), spends the Alpha Vantage free tier's 25 daily requests on companies that just reported and then on backfilling missed quarters since January 2025, scores each transcript with the Loughran-McDonald counts and FinBERT, refreshes CARs, saves the state to the `feed-state` pre-release, and redeploys the site.
+
+To switch it on:
+
+1. Get a free key at [alphavantage.co/support/#api-key](https://www.alphavantage.co/support/#api-key) and add it as the repository secret `ALPHAVANTAGE_API_KEY`.
+2. Actions → Live feed → Run workflow with mode `probe` (5 requests) to check the key and how Alpha Vantage labels fiscal quarters.
+3. Run once with mode `history` (about 1 to 2 hours) to score 2023+ Hugging Face calls, so every company has a baseline for the "vs own history" column.
+
+After that the daily schedule takes over. Locally: `ALPHAVANTAGE_API_KEY=... python -m earnings_tone.cli feed-update --state state --site-out ../web/data/feed`.
+
+### FinBERT
+
+`python -m earnings_tone.cli nlp --transcripts T.jsonl --out fb.parquet` scores every sentence with FinBERT (ProsusAI/finbert, run from its ONNX export on onnxruntime, so no PyTorch) and adds call-level `fb_*` columns: mean P(positive) minus P(negative) for prepared remarks, executive answers and analyst questions, plus negative and positive sentence shares. It runs at roughly 5 to 8 seconds a call on a 4-core CPU.
+
 The real-data run itself is described in [pipeline/README.md](pipeline/README.md) and the docstrings in `pipeline/scripts/`.
 
 ## Data
 
-No data is committed. Transcripts come from the Hugging Face dataset `kurry/sp500_earnings_transcripts`, prices from Yahoo Finance, and EPS surprise from public Hugging Face datasets, one of which (`sovai/earnings_surprise`) is licensed for academic research only. The app shows derived values only (tone scores, abnormal returns, beat or miss, a surprise percentile) and short Q&A excerpts, never raw licensed data or full transcripts.
+No data is committed. Live feed transcripts come from Alpha Vantage's free tier (personal, non-commercial use); historical transcripts come from the Hugging Face dataset `kurry/sp500_earnings_transcripts`, prices from Yahoo Finance, and EPS surprise from public Hugging Face datasets, one of which (`sovai/earnings_surprise`) is licensed for academic research only. The app shows derived values only (tone scores, abnormal returns, beat or miss, a surprise percentile) and short Q&A excerpts, never raw licensed data or full transcripts.

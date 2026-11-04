@@ -47,7 +47,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
             <div>
               <b>Earnings Call Tone</b>
               <p style={{ margin: "8px 0 0", maxWidth: 560 }}>
-                A research portfolio project by Linson. Tone is scored with the Loughran-McDonald finance dictionary.
+                A research portfolio project by Linson. Tone is scored with the Loughran-McDonald finance dictionary and, in the live feed, FinBERT.
                 Abnormal returns use a market model against SPY. EPS results are shown only as beat or miss; Q&amp;A
                 text is shown as short excerpts. Not investment advice.
               </p>
@@ -56,6 +56,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
               <b>Pages</b>
               <ul>
                 <li><Link href="/">Explore a company</Link></li>
+                <li><Link href="/latest/">Live feed</Link></li>
                 <li><Link href="/walkthrough/">Project walkthrough</Link></li>
                 <li><Link href="/results/">Main results</Link></li>
                 <li><Link href="/robustness/">Does it hold up?</Link></li>
