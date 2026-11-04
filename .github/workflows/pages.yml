@@ -4,10 +4,12 @@ name: Deploy site
 # api/export_static.py packed as `tar czf site-data.tar.gz data` from web/.
 # Every push to main deploys with the latest release's data; after uploading new data,
 # Run workflow redeploys. Runs from main because the github-pages environment only
-# accepts deploys from the default branch, not from release tags.
+# accepts deploys from the default branch, not from release tags. The Live feed workflow
+# calls this after each daily run; its data comes from the feed-state pre-release.
 on:
   push:
     branches: [main]
+  workflow_call:  # the Live feed workflow redeploys after each run
   workflow_dispatch:
     inputs:
       tag:
@@ -44,6 +46,16 @@ jobs:
           gh release download $TAG --repo "$GITHUB_REPOSITORY" --pattern site-data.tar.gz
           tar xzf site-data.tar.gz
           ls data/call | wc -l
+      - name: Download live feed data
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          mkdir -p data/feed
+          if gh release download feed-state --repo "$GITHUB_REPOSITORY" --pattern feed-site.tar.gz; then
+            tar xzf feed-site.tar.gz -C data/feed
+          else
+            echo "No live feed data yet; the Live feed page shows a placeholder"
+          fi
       - run: npm ci
       - run: npm run build
         env:

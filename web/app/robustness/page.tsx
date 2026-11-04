@@ -3,6 +3,8 @@ import ForestPlot from "@/components/ForestPlot";
 import { PlaceboHistogram } from "@/components/StudyCharts";
 import { PageHead, Section, Takeaway } from "@/components/ui";
 import { study } from "@/lib/data";
+// Small summary from pipeline/scripts/finbert_robustness.py (regression coefficients only).
+import finbert from "@/lib/finbert_check.json";
 
 export const metadata: Metadata = { title: "Does it hold up?" };
 
@@ -11,6 +13,11 @@ const VERDICTS: Record<string, string> = {
   H2: "Not supported. Evasive answers show no link to the reaction.",
   H3: "Not supported. The gap between scripted and Q&A tone does not predict the next month.",
   H4: "Not supported. Tone does not matter more when the surprise is small.",
+};
+
+const fb = (check: string) => {
+  const r = finbert.rows.find((x) => x.check === check);
+  return r ? `${r.coef_bps > 0 ? "+" : "\u2212"}${Math.abs(Math.round(r.coef_bps))} bps, t = ${r.t_stat.toFixed(1).replace("-", "\u2212")}` : "";
 };
 
 export default function Robustness() {
@@ -40,6 +47,22 @@ export default function Robustness() {
           takeaway={<Takeaway>tone scores were shuffled among calls in the same quarter 100 times. The real result
             (t = {sum.real_composite_t.toFixed(2)}) sits inside the pile of fake ones; {Math.round(100 * sum.placebo_share_sig)}% of fakes passed ±1.96, about the 5% luck alone gives.</Takeaway>}>
           <PlaceboHistogram tStats={s.placebo.map((p) => p.t_stat)} realT={sum.real_composite_t} />
+        </Section>
+
+        <Section title="Second opinion: FinBERT reads the same calls"
+          takeaway={<Takeaway>a sentence-reading model confirms the dictionary only weakly: its answer tone is
+            {" "}{fb("FinBERT tone in answers")}, and gone after 2023. Analyst question tone and negative answer
+            sentences clear the bar, but they move on day 0 with the news, so they likely restate the quarter rather
+            than predict anything. The one forward-looking signal is the FinBERT tone gap: scripted remarks rosier than
+            the answers go with weaker drift over days +2 to +20 ({fb("FinBERT tone gap, drift days +2 to +20")}), and
+            it holds after 2023, unlike the dictionary version (H3).</Takeaway>}
+          foot={<>FinBERT (ProsusAI/finbert) labels each executive and analyst sentence; a call’s score is the mean of
+            P(positive) minus P(negative). Same controls as above, standardized within quarter, {finbert.n_matched.toLocaleString()} calls.
+            Rank correlation with the dictionary measure: {finbert.spearman.answers.toFixed(2)} for answers,
+            {" "}{finbert.spearman.tone_gap.toFixed(2)} for the tone gap.</>}>
+          <ForestPlot rows={finbert.rows.filter((r) => !r.check.startsWith("Horse race")).map((r) => ({
+            label: r.check, coef: r.coef_bps, se: r.se_bps, t: r.t_stat, highlight: r.check.startsWith("Dictionary"),
+          }))} />
         </Section>
 
         <Section title="Verdict on each hypothesis" flush>

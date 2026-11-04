@@ -7,3 +7,6 @@ pyarrow
 yfinance
 datasets
 pytest
+onnxruntime
+tokenizers
+huggingface_hub

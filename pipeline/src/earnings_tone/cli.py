@@ -6,7 +6,7 @@ from pathlib import Path
 
 import pandas as pd
 
-from . import data, features, prices, study, surprise, synthetic, ticker_report
+from . import data, features, feed, nlp, prices, study, surprise, synthetic, ticker_report, universe
 
 
 def cmd_demo(a):
@@ -65,6 +65,71 @@ def cmd_ticker(a):
     print(f"{res['ticker']}: {len(ts)} calls, {len(res['answers'])} Q&A exchanges. Report: {path}")
 
 
+def cmd_nlp(a):
+    ts = data.load_transcripts(a.transcripts)
+    scores = nlp.build_scores(ts, nlp.FinBert(onnx_file=a.onnx_file), progress=True)
+    if a.features:  # append to an existing features table
+        f = pd.read_parquet(a.features)
+        scores = f.merge(scores, on=["ticker", "call_date"], how="left")
+    scores.to_parquet(a.out)
+    print(f"{len(scores)} rows with FinBERT tone -> {a.out}")
+
+
+def _universe(a):
+    uni = universe.top_companies(a.top)
+    print(f"Universe: top {len(uni)} S&P 500 companies by market cap ({uni['ticker'].iloc[0]} first)")
+    return uni
+
+
+def cmd_feed_update(a):
+    import os
+    from . import alphavantage as av
+
+    key = os.environ.get("ALPHAVANTAGE_API_KEY")
+    state = feed.State.load(a.state)
+    uni = _universe(a)
+    if key:
+        stats = feed.update(state, uni, av.Client(key, budget=a.budget), nlp.FinBert(),
+                            features.load_lm_from_pysentiment2())
+        print("Alpha Vantage:", stats)
+    else:
+        print("No ALPHAVANTAGE_API_KEY (free key: https://www.alphavantage.co/support/#api-key): "
+              "skipping new transcripts, refreshing reactions and site data only")
+    if not state.calls.empty:
+        px = prices.fetch_prices_yahoo(sorted(set(state.calls["ticker"])),
+                                       start=str((pd.to_datetime(state.calls["call_date"]).min()
+                                                  - pd.Timedelta(days=400)).date()))
+        feed.refresh_cars(state, px)
+    state.save(a.state)
+    print("Site data:", feed.export_site(state, uni, a.site_out))
+
+
+def cmd_feed_history(a):
+    """Score Hugging Face transcripts for the universe so every company has a baseline."""
+    import pyarrow.compute as pc
+    import pyarrow.parquet as pq
+    from huggingface_hub import hf_hub_download
+
+    state = feed.State.load(a.state)
+    uni = _universe(a)
+    path = hf_hub_download("kurry/sp500_earnings_transcripts", "parquet_files/part-0.parquet", repo_type="dataset")
+    tbl = pq.read_table(path, columns=["symbol", "year", "quarter", "date", "structured_content", "company_name"],
+                        filters=[("year", ">=", pd.Timestamp(a.since).year)])
+    tbl = tbl.filter(pc.is_in(tbl["symbol"], value_set=__import__("pyarrow").array(uni["ticker"].tolist())))
+    ts = [t for t in (data._row_to_transcript(r) for r in tbl.to_pylist())
+          if t is not None and t.call_date >= pd.Timestamp(a.since) and t.qa_pairs()]
+    print(f"{len(ts)} Hugging Face calls since {a.since} for {len({t.ticker for t in ts})} companies")
+    fb, lex = nlp.FinBert(), features.load_lm_from_pysentiment2()
+    rows = []
+    for k, t in enumerate(ts, 1):
+        rows.append(feed.score_transcript(t, fb, lex, {"source": "huggingface"}))
+        if k % 50 == 0:
+            print(f"  scored {k}/{len(ts)}", flush=True)
+    feed.add_history(state, pd.DataFrame(rows))
+    state.save(a.state)
+    print(f"State now holds {len(state.calls)} calls")
+
+
 def main(argv=None):
     p = argparse.ArgumentParser(prog="earnings_tone")
     sub = p.add_subparsers(required=True)
@@ -83,6 +148,18 @@ def main(argv=None):
     s.add_argument("--lm-dict"); s.add_argument("--panel", help="study panel parquet, adds returns and peer ranks")
     s.add_argument("--call", help="focus call date (default: latest)"); s.add_argument("--recent", type=int, default=4)
     s.add_argument("--out", help="output folder (default: reports/<TICKER>)"); s.set_defaults(f=cmd_ticker)
+    s = sub.add_parser("nlp", help="FinBERT sentence tone for every call (fb_* columns)")
+    s.add_argument("--transcripts", required=True); s.add_argument("--out", required=True)
+    s.add_argument("--features", help="features parquet to merge the scores into")
+    s.add_argument("--onnx-file", default=nlp.ONNX_FILE); s.set_defaults(f=cmd_nlp)
+    for name, fn, h in (("feed-update", cmd_feed_update, "daily live feed run (Alpha Vantage + FinBERT)"),
+                        ("feed-history", cmd_feed_history, "one-off: score Hugging Face history for the universe")):
+        s = sub.add_parser(name, help=h); s.add_argument("--state", required=True); s.add_argument("--top", type=int, default=100)
+        s.set_defaults(f=fn)
+        if name == "feed-update":
+            s.add_argument("--site-out", required=True); s.add_argument("--budget", type=int, default=25)
+        else:
+            s.add_argument("--since", default="2024-01-01")
     a = p.parse_args(argv)
     a.f(a)
 

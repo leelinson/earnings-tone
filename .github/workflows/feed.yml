@@ -1,0 +1,94 @@
+name: Live feed
+
+# Daily: pull new earnings calls for the 100 largest S&P 500 companies from Alpha Vantage,
+# score them (Loughran-McDonald + FinBERT), refresh stock reactions, then redeploy the site.
+# State (scores and short excerpts, never transcript text) lives in the `feed-state`
+# pre-release so it never becomes the "latest" release the site's study data comes from.
+on:
+  schedule:
+    - cron: "30 12 * * *"  # 08:30 New York (EDT); calls from the day before are usually posted by then
+  workflow_dispatch:
+    inputs:
+      mode:
+        description: "update (daily run), history (one-off: score 2024+ Hugging Face calls as baselines, about 2 hours), probe (check the API)"
+        type: choice
+        options: [update, history, probe]
+        default: update
+      budget:
+        description: Alpha Vantage requests to spend (free key allows 25 a day)
+        default: "25"
+
+permissions:
+  contents: write
+
+concurrency:
+  group: feed
+  cancel-in-progress: false
+
+jobs:
+  feed:
+    runs-on: ubuntu-latest
+    timeout-minutes: 300
+    defaults:
+      run:
+        working-directory: pipeline
+    env:
+      GH_TOKEN: ${{ github.token }}
+      ALPHAVANTAGE_API_KEY: ${{ secrets.ALPHAVANTAGE_API_KEY }}
+      MODE: ${{ inputs.mode || 'update' }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          cache: pip
+          cache-dependency-path: pipeline/requirements.txt
+      - run: pip install -r requirements.txt -e . && pip install --no-deps pysentiment2
+      - name: Cache FinBERT and Hugging Face files
+        uses: actions/cache@v4
+        with:
+          path: ~/.cache/huggingface
+          key: hf-${{ hashFiles('pipeline/src/earnings_tone/nlp.py') }}-${{ env.MODE }}
+          restore-keys: hf-
+      - name: Check the API key
+        if: env.MODE != 'history'
+        run: |
+          if [ -z "$ALPHAVANTAGE_API_KEY" ]; then
+            echo "::error::Add a free Alpha Vantage key as the repository secret ALPHAVANTAGE_API_KEY"; exit 1
+          fi
+      - name: Probe Alpha Vantage
+        if: env.MODE == 'probe'
+        run: python scripts/probe_alphavantage.py
+      - name: Download state
+        if: env.MODE != 'probe'
+        run: |
+          mkdir -p state site
+          if gh release download feed-state --repo "$GITHUB_REPOSITORY" --pattern feed-state.tar.gz; then
+            tar xzf feed-state.tar.gz -C state
+          else
+            echo "No saved state yet: starting fresh"
+          fi
+      - name: Score Hugging Face history
+        if: env.MODE == 'history'
+        run: python -m earnings_tone.cli feed-history --state state --since 2024-01-01
+      - name: Fetch and score new calls
+        if: env.MODE != 'probe'
+        run: python -m earnings_tone.cli feed-update --state state --site-out site --budget "${{ inputs.budget || '25' }}"
+      - name: Save state and site data
+        if: env.MODE != 'probe'
+        run: |
+          tar czf feed-state.tar.gz -C state .
+          tar czf feed-site.tar.gz -C site .
+          gh release view feed-state --repo "$GITHUB_REPOSITORY" >/dev/null 2>&1 || \
+            gh release create feed-state --repo "$GITHUB_REPOSITORY" --prerelease --latest=false \
+              --title "Live feed state" --notes "Written by the Live feed workflow. Derived scores only."
+          gh release upload feed-state feed-state.tar.gz feed-site.tar.gz --repo "$GITHUB_REPOSITORY" --clobber
+
+  deploy:
+    needs: feed
+    if: ${{ (inputs.mode || 'update') != 'probe' }}
+    uses: ./.github/workflows/pages.yml
+    permissions:
+      contents: read
+      pages: write
+      id-token: write

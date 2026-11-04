@@ -5,6 +5,7 @@ import { useEffect, useRef } from "react";
 
 const LINKS: [string, string][] = [
   ["/", "Explore a company"],
+  ["/latest/", "Live feed"],
   ["/walkthrough/", "Project walkthrough"],
   ["/results/", "Main results"],
   ["/robustness/", "Does it hold up?"],

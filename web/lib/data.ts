@@ -59,3 +59,20 @@ export const company = (t: string) =>
   read<{ company: Company & { summary: CompanySummary }; calls: Call[]; prices: PricePoint[] }>("company", `${t}.json`);
 export const call = (id: string) => read<{ call: Call; window: WindowPoint[]; qa: QAPair[] }>("call", `${id}.json`);
 export const study = () => read<Study>("study.json");
+
+// Live feed (pipeline: earnings_tone.cli feed-update). Optional: absent until the feed has run once.
+export type FeedExcerpt = { text: string; score: number };
+export type FeedCall = {
+  ticker: string; name: string; rank: number; call_date: string; quarter: string; fiscal_quarter: string | null;
+  source: string; report_time: string | null; surprise_pct: number | null;
+  car_0_1: number | null; car_2_20: number | null; av_sentiment: number | null; n_questions: number | null;
+  excerpts: { negative: FeedExcerpt[]; positive: FeedExcerpt[] } | null;
+} & Record<string, number | string | null | undefined | object>;
+export type Feed = {
+  updated: string; metrics: Record<string, string>;
+  universe: { rank: number; ticker: string; name: string; market_cap: number; earnings_at: string | null }[];
+  upcoming: { ticker: string; name: string; date: string; estimate: boolean }[];
+  calls: FeedCall[]; n_companies_with_calls: number;
+};
+export const feed = (): Feed | null =>
+  fs.existsSync(path.join(DATA, "feed", "latest.json")) ? read<Feed>("feed", "latest.json") : null;

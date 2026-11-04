@@ -59,6 +59,26 @@ def load_lm_dictionary(path: str | Path) -> dict[str, set[str]]:
     return {k: set(df.loc[df[c] > 0, "Word"]) for k, c in cols.items() if c in df}
 
 
+def load_lm_from_pysentiment2() -> dict[str, set[str]]:
+    """Full LM dictionary from the pysentiment2 wheel (pip install --no-deps pysentiment2).
+
+    Same lexicon the study used: Weak_Modal is the dictionary's Modal == 3 strength class.
+    The package is located without importing it, so its nltk dependency is not needed.
+    """
+    import importlib.util
+
+    spec = importlib.util.find_spec("pysentiment2")
+    if spec is None or not spec.submodule_search_locations:
+        raise ImportError("pip install --no-deps pysentiment2")
+    df = pd.read_csv(Path(list(spec.submodule_search_locations)[0]) / "static" / "LM.csv")
+    df["Weak_Modal"] = (df["Modal"] == 3).astype(int)
+    df = df[["Word", "Negative", "Positive", "Uncertainty", "Litigious", "Weak_Modal"]]
+    df["Word"] = df["Word"].astype(str).str.lower()
+    cols = {"uncertainty": "Uncertainty", "negative": "Negative", "positive": "Positive",
+            "weak_modal": "Weak_Modal", "litigious": "Litigious"}
+    return {k: set(df.loc[df[c] > 0, "Word"]) for k, c in cols.items()}
+
+
 def tokenize(text: str) -> list[str]:
     return WORD_RE.findall(text.lower())
 
