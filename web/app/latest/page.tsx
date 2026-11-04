@@ -52,14 +52,14 @@ export default function Latest() {
       </InfoCallout>
 
       <div className="stack">
-        <Section title="Newest calls" takeaway="Most recent first. Earnings surprise is reported EPS against the consensus estimate." flush>
+        <Section title="Newest calls" takeaway="Most recent first. Answer tone, tone gap (prepared remarks minus answers) and hedging are percentiles among that quarter’s calls; EPS surprise is reported EPS against the consensus estimate." flush>
           <div className="table-scroll">
             <table>
               <thead>
                 <tr>
                   <th className="l">Call date</th><th className="l">Company</th><th>EPS surprise</th>
-                  <th>Answer tone (FinBERT)</th><th>vs own history</th><th>Prepared vs answers gap</th>
-                  <th>Hedging</th><th>2-day reaction</th>
+                  <th>Answer tone</th><th>vs own history</th><th>Tone gap</th>
+                  <th>Hedging</th><th>2-day move</th>
                 </tr>
               </thead>
               <tbody>

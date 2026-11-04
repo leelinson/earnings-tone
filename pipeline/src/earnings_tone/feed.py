@@ -243,7 +243,8 @@ def export_site(state: State, uni: pd.DataFrame, out: str | Path, today: pd.Time
             row["excerpts"] = json.loads(r["excerpts"]) if isinstance(r.get("excerpts"), str) else None
             row["name"], row["rank"] = names[r["ticker"]], rank[r["ticker"]]
             calls.append(row)
-    upcoming = uni[uni["earnings_at"].notna() & (uni["earnings_at"] >= today)].sort_values("earnings_at")
+    upcoming = uni[uni["earnings_at"].notna() & (uni["earnings_at"] >= today)
+                   & (uni["earnings_at"] < today + pd.Timedelta(days=45))].sort_values("earnings_at")
     payload = {
         "updated": pd.Timestamp.now(tz="UTC").isoformat(timespec="minutes"),
         "metrics": METRICS,

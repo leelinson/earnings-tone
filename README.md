@@ -91,7 +91,7 @@ To switch it on:
 
 1. Get a free key at [alphavantage.co/support/#api-key](https://www.alphavantage.co/support/#api-key) and add it as the repository secret `ALPHAVANTAGE_API_KEY`.
 2. Actions → Live feed → Run workflow with mode `probe` (5 requests) to check the key and how Alpha Vantage labels fiscal quarters.
-3. Run once with mode `history` (about 1 to 2 hours) to score 2023+ Hugging Face calls, so every company has a baseline for the "vs own history" column.
+3. Run once with mode `history` (about 2 hours) to score the roughly 500 Hugging Face calls from 2024 to May 2025, so every company has a baseline for the "vs own history" column.
 
 After that the daily schedule takes over. Locally: `ALPHAVANTAGE_API_KEY=... python -m earnings_tone.cli feed-update --state state --site-out ../web/data/feed`.
 

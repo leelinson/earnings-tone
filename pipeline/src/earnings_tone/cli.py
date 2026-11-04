@@ -159,7 +159,7 @@ def main(argv=None):
         if name == "feed-update":
             s.add_argument("--site-out", required=True); s.add_argument("--budget", type=int, default=25)
         else:
-            s.add_argument("--since", default="2023-01-01")
+            s.add_argument("--since", default="2024-01-01")
     a = p.parse_args(argv)
     a.f(a)
 

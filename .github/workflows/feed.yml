@@ -10,7 +10,7 @@ on:
   workflow_dispatch:
     inputs:
       mode:
-        description: "update (daily run), history (one-off: score 2023+ Hugging Face calls as baselines), probe (check the API)"
+        description: "update (daily run), history (one-off: score 2024+ Hugging Face calls as baselines, about 2 hours), probe (check the API)"
         type: choice
         options: [update, history, probe]
         default: update
@@ -70,7 +70,7 @@ jobs:
           fi
       - name: Score Hugging Face history
         if: env.MODE == 'history'
-        run: python -m earnings_tone.cli feed-history --state state --since 2023-01-01
+        run: python -m earnings_tone.cli feed-history --state state --since 2024-01-01
       - name: Fetch and score new calls
         if: env.MODE != 'probe'
         run: python -m earnings_tone.cli feed-update --state state --site-out site --budget "${{ inputs.budget || '25' }}"
